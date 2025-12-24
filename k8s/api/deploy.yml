@@ -1,0 +1,26 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: hl-api
+  labels:
+    app: hl-api
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: hl-api
+  template:
+    metadata:
+      labels:
+        app: hl-api
+    spec:
+      containers:
+      - name: hl-api
+        image: hi-load-hl-api:0.0.1
+        imagePullPolicy: IfNotPresent
+        ports:
+          - containerPort: 1323
+        envFrom:
+          - secretRef:
+              name: hl-api-secret
+

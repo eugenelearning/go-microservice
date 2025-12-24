@@ -2,7 +2,7 @@
 
 set -e
 
-psql -v ON_ERROR_STOP=1 -U "${POSTGRES_USER}" -d "${DB_NAME}" <<-EOF
+psql -v ON_ERROR_STOP=1 -U "${POSTGRES_USER}" -d "${POSTGRES_DB}" <<-EOF
 INSERT INTO customer (name, email) VALUES
     ('Bob Cody', 'cody@truth.io'),
     ('O.W Grant', 'one@wish.you'),

@@ -1,0 +1,25 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: hl-cache
+  labels:
+    app: hl-cache
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: hl-cache
+  template:
+    metadata:
+      labels:
+        app: hl-cache
+    spec:
+      containers:
+      - name: hl-cache
+        image: redis:8.4.0-alpine
+        imagePullPolicy: IfNotPresent
+        ports:
+          - containerPort: 6379
+        envFrom:
+          - secretRef:
+              name: hl-db-secret

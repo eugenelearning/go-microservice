@@ -3,4 +3,4 @@ scrape_configs:
     metrics_path: '/metrics'
     scrape_interval: 15s 
     static_configs:
-      - targets: ['api:1323']
+      - targets: ['host.docker.internal:80']

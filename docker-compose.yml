@@ -1,6 +1,23 @@
 services:
+  cache: 
+    image: redis:8.4.0-alpine
+    restart: always
+    ports:
+      - "6379:6379"
+    volumes:
+      - .data/cache:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
   db:
-    build: ./db
+    build: 
+      context: ./db
+      tags:
+      - "hi-load-hl-db:0.01"
     env_file:
       - .env
     volumes:
@@ -15,12 +32,17 @@ services:
       timeout: 3s
 
   api:
-    build: ./api
+    build: 
+      context: ./api
+      tags:
+        - "hi-load-hl-api:0.0.1"
     env_file:
       - .env
     ports: 
       - "1323:1323"
     depends_on:
+      cache: 
+        condition: service_healthy
       db: 
         condition: service_healthy
 
@@ -28,9 +50,11 @@ services:
     build: ./prometheus
   grafana:
     image: grafana/grafana-enterprise
-    container_name: grafana
     restart: unless-stopped
     volumes:
       - .data/grafana:/var/lib/grafana
     ports:
       - '3000:3000'
+
+
+

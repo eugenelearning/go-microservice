@@ -1,0 +1,13 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: hl-api
+  labels:
+    app: hl-api
+spec:
+  type: LoadBalancer
+  ports:
+    - port: 80
+      targetPort: 1323
+  selector:
+    app: hl-api

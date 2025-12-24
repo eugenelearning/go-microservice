@@ -3,13 +3,28 @@ package repositories
 import (
 	"api/models"
 	"api/storage"
+	"encoding/json"
+	"fmt"
 	"log"
+	"time"
 
 	"github.com/labstack/echo/v4"
 )
 
 func GetAllUsers(c echo.Context) ([]models.User, error) {
 	var result []models.User
+	cacheKey := "users"
+
+	data, err := storage.RDB.Get(c.Request().Context(), cacheKey).Bytes()
+
+	if err == nil {
+		err = json.Unmarshal(data, &result)
+
+		if err == nil {
+			fmt.Println("Cache hit: retrieved users from Redis")
+			return result, nil
+		}
+	}
 
 	rows, err := storage.DB.Query(c.Request().Context(), "SELECT id, name, email FROM customer")
 
@@ -28,11 +43,31 @@ func GetAllUsers(c echo.Context) ([]models.User, error) {
 		result = append(result, item)
 	}
 
+	jsonData, err := json.Marshal(result)
+
+	storage.RDB.Set(c.Request().Context(), cacheKey, jsonData, 10*time.Minute).Err()
+
+	if err != nil {
+		log.Printf("Error setting cache data: %v", err)
+	}
+
 	return result, nil
 }
 
 func GetUserByID(c echo.Context, id string) (models.User, error) {
 	item := models.User{}
+	cacheKey := "users" + id
+
+	data, cacheErr := storage.RDB.Get(c.Request().Context(), cacheKey).Bytes()
+
+	if cacheErr == nil {
+		err := json.Unmarshal(data, &item)
+
+		if err == nil {
+			fmt.Println("Cache hit: retrieved user from Redis")
+			return item, nil
+		}
+	}
 
 	err := storage.DB.QueryRow(c.Request().Context(), "SELECT id, name, email FROM customer WHERE id = $1", id).Scan(&item.Id, &item.Name, &item.Email)
 
@@ -40,41 +75,9 @@ func GetUserByID(c echo.Context, id string) (models.User, error) {
 		return item, err
 	}
 
-	return item, nil
-}
+	jsonData, err := json.Marshal(item)
 
-func CreateUser(c echo.Context, payload *models.UserDTO) (models.User, error) {
-	item := models.User{}
-
-	err := storage.DB.QueryRow(c.Request().Context(), "INSERT INTO customer (name, email) VALUES ($1, $2) RETURNING id, name, email", payload.Name, payload.Email).Scan(&item.Id, &item.Name, &item.Email)
-
-	if err != nil {
-		return item, err
-	}
+	storage.RDB.Set(c.Request().Context(), cacheKey, jsonData, 10*time.Minute).Err()
 
 	return item, nil
-}
-
-func UpdateUser(c echo.Context, id string, payload *models.UserDTO) (models.User, error) {
-	item := models.User{}
-
-	err := storage.DB.QueryRow(c.Request().Context(), "UPDATE customer SET name = $1, email = $2 WHERE id = $3 RETURNING id, name, email", payload.Name, payload.Email, id).Scan(&item.Id, &item.Name, &item.Email)
-
-	if err != nil {
-		return item, err
-	}
-
-	return item, nil
-}
-
-func DeleteUser(c echo.Context, id string) (string, error) {
-	var result string
-
-	err := storage.DB.QueryRow(c.Request().Context(), "DELETE FROM customer WHERE id = $1 RETURNING id", id).Scan(&result)
-
-	if err != nil {
-		return result, err
-	}
-
-	return result, nil
 }

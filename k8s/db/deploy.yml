@@ -1,0 +1,41 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: hl-db
+  labels:
+    app: hl-db
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: hl-db
+  template:
+    metadata:
+      labels:
+        app: hl-db
+    spec:
+      containers:
+      - name: hl-db
+        image: hi-load-hl-db:0.01
+        imagePullPolicy: IfNotPresent
+        ports:
+          - containerPort: 5432
+        envFrom:
+          - secretRef:
+              name: hl-db-secret
+        volumeMounts:
+          - name: hl-db-vol
+            mountPath: /var/lib/postgresql
+      volumes:
+        - name: hl-db-vol
+          persistentVolumeClaim:
+            claimName: postgres-volume-claim
+  volumeClaimTemplates:
+  - metadata:
+      name: hl-db-vol
+    spec:
+      accessModes: [ "ReadWriteOnce" ]
+      storageClassName: "standard" # Use your cluster's storage class
+      resources:
+        requests:
+          storage: 5Gi
